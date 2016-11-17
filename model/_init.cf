@@ -1,0 +1,168 @@
+import ssh
+import openstack
+import ubuntu
+import clearwater::openstack
+import graph
+import dns
+import bind
+import param
+import apt
+import ip
+import cwdemo::params
+import cwdemo::forms
+
+entity Infrastructure:
+    string network_base_name
+    ip::cidr network_address
+    string private_domain
+    string public_domain
+    bool monitoring=false
+end
+
+openstack::Provider provider [1] -- [0:] Infrastructure infra
+openstack::Project project [1] -- [0:] Infrastructure infra
+openstack::Network external_network [1] -- [0:] Infrastructure infra
+openstack::Subnet mgmt_subnet [1] -- [0:] Infrastructure infra
+
+clearwater::openstack::ManagedClearWater managed_clearwater [1] -- [0:1] Infrastructure infra
+ssh::Key key_pair [1] -- [0:] Infrastructure infra
+ip::Host infra_hosts [0:] -- [0:1] Infrastructure infra
+
+implement Infrastructure using infra
+
+implementation infra for Infrastructure:
+    ## OpenStack tenant network setup
+    inmanta_net = openstack::Network(provider=provider, project=project, name=network_base_name)
+    inmanta_subnet = openstack::Subnet(provider=provider, project=project, name=network_base_name, network=inmanta_net, 
+                                       router=router, dhcp=true, network_address=network_address,
+                                       dns_servers=["8.8.8.8", "8.8.4.4"])
+    self.mgmt_subnet = inmanta_subnet
+
+    router = openstack::Router(provider=provider, project=project, name=network_base_name, admin_state="up",
+                               ext_gateway=external_network)
+
+    ## Setup mgmt server
+    # This server functions as a gateway to access internal servers that do not have a public ip
+    sg_mgmt = openstack::SecurityGroup(provider=provider, project=project, name="cw_mgmt", description="Clearwater mgmt server")
+    openstack::IPrule(group=sg_mgmt, direction="egress", ip_protocol="all", remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_mgmt, direction="ingress", ip_protocol="icmp", remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_mgmt, direction="ingress", ip_protocol="tcp", port=22, remote_prefix="0.0.0.0/0")
+
+    mgmt_server = openstack::Host(provider=provider, project=project, name="mgmt.{{private_domain}}", flavor=cwdemo::params::mgmt_flavor,
+                                  key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
+                                  security_groups=[sg_mgmt])
+    fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mgmt_server.eth0_port)
+    dns::A(zone=private_zone, resource="{{mgmt_server.name}}.", ipaddress=mgmt_server.ip)
+    std::ConfigFile(host=mgmt_server, path="/etc/resolv.conf", content=std::template("cwdemo/resolv.conf.tmpl"))
+
+    ## Setup DNS servers
+    hostmaster="hostmaster@{{public_domain}}"
+
+    sg_ns = openstack::SecurityGroup(provider=provider, project=project, name="cw_ns", description="Clearwater mgmt server")
+    openstack::IPrule(group=sg_ns, direction="egress", ip_protocol="all", remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_ns, direction="ingress", ip_protocol="icmp", remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_ns, direction="ingress", ip_protocol="tcp", port=22, remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_ns, direction="ingress", ip_protocol="tcp", port=53, remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_ns, direction="ingress", ip_protocol="udp", port=53, remote_prefix="0.0.0.0/0")
+
+    # ns1
+    ns1_server = openstack::Host(provider=provider, project=project, name="ns-1.{{private_domain}}", flavor=cwdemo::params::mgmt_flavor,
+                                 key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
+                                 security_groups=[sg_ns])
+    fip_ns1 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns1_server.eth0_port)
+    dns::A(zone=private_zone, resource="{{ns1_server.name}}.", ipaddress=ns1_server.ip)
+
+    # ns2
+    ns2_server = openstack::Host(provider=provider, project=project, name="ns-2.{{private_domain}}", flavor=cwdemo::params::mgmt_flavor,
+                                 key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
+                                 security_groups=[sg_ns])
+    fip_ns2 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns2_server.eth0_port)
+    dns::A(zone=private_zone, resource="{{ns2_server.name}}.", ipaddress=ns1_server.ip)
+
+    # bind
+    master_ns = bind::Server(host=ns1_server, axfr_allowed=ns2_server.ip, allow_recursion=inmanta_subnet.network_address,
+                             forwarders=cwdemo::params::dns_forwarders)
+    slave_ns = bind::Server(host=ns2_server, axfr_allowed=ns1_server.ip, allow_recursion=inmanta_subnet.network_address,
+                             forwarders=cwdemo::params::dns_forwarders)
+
+    # create public and private zone
+    private_zone = dns::Zone(domain=private_domain, hostmaster=hostmaster, master=master_ns, slaves=slave_ns, add_ns=true)
+    public_zone = dns::Zone(domain=public_domain, hostmaster=hostmaster, master=master_ns, slaves=slave_ns, add_ns=true)
+
+    # set managed clearwater relations
+    self.managed_clearwater.mgmt_network = inmanta_subnet
+    self.managed_clearwater.image_id = cwdemo::params::ubuntu1404_id
+    self.managed_clearwater.flavor = cwdemo::params::cw_flavor
+    self.managed_clearwater.key_pair = key_pair
+    self.managed_clearwater.private_domain = private_domain
+    self.managed_clearwater.public_domain = public_domain
+    self.managed_clearwater.external_network = external_network
+    self.managed_clearwater.dns_servers = [master_ns.ipaddress, slave_ns.ipaddress]
+    self.managed_clearwater.public_zone = public_zone
+    self.managed_clearwater.private_zone = private_zone
+    self.managed_clearwater.provider = provider
+    self.managed_clearwater.project = project
+
+    # get replication from server
+    self.managed_clearwater.sprout_instances = param::one("sprout", "cwdemo::forms::ClearwaterSize")
+    self.managed_clearwater.bono_instances = param::one("bono", "cwdemo::forms::ClearwaterSize")
+    self.managed_clearwater.homestead_instances = param::one("homestead", "cwdemo::forms::ClearwaterSize")
+    self.managed_clearwater.homer_instances = param::one("homer", "cwdemo::forms::ClearwaterSize")
+    self.managed_clearwater.ralf_instances = param::one("ralf", "cwdemo::forms::ClearwaterSize")
+    self.managed_clearwater.ellis_instances = 1
+
+    ## Report DNS and MGMT ips
+    param::report("ns-1 public ip", std::getfact(fip_ns1, "ip_address"))
+    param::report("ns-2 public ip", std::getfact(fip_ns2, "ip_address"))
+    param::report("mgmt server public ip", std::getfact(fip, "ip_address"))
+
+    # Create a list of all infrastructure hosts
+    self.infra_hosts = [mgmt_server, ns1_server, ns2_server]
+end
+
+import lma
+import lma::storage::influxdb
+import lma::metrics::collectd
+import lma::dashboards
+
+implementation monitoringSetup for Infrastructure:
+    ## Setup a monitor server
+    sg_mon = openstack::SecurityGroup(provider=provider, project=project, name="cw_mon", description="Clearwater mon server")
+    openstack::IPrule(group=sg_mon, direction="egress", ip_protocol="all", remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="icmp", remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="tcp", port=22, remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="all", remote_prefix="0.0.0.0/0")
+
+    mon_server = openstack::Host(provider=provider, project=project, name="mon.{{private_domain}}", flavor=cwdemo::params::mon_flavor,
+                                  key_pair=key_pair, subnet=mgmt_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
+                                  security_groups=[sg_mon], infra=self)
+
+    fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mon_server.eth0_port)
+
+    monitor = lma::LMA(monitor_server=mon_server)
+    monitor.hosts = self.managed_clearwater.hosts
+    monitor.hosts = self.infra_hosts
+    monitor.hosts = mon_server
+
+    lma::storage::influxdb::Storage(monitor=monitor)
+    lma::metrics::collectd::Agent(monitor=monitor)
+    lma::dashboards::Grafana(monitor=monitor)
+
+    mon_ip = std::getfact(fip, "ip_address")
+    param::report("mon server public ip", mon_ip)
+    param::report("grafana", "http://{{ mon_ip }}:3000")
+end
+
+implement Infrastructure using monitoringSetup when monitoring
+
+## Misc
+# Add this implementation to set user_data
+implement openstack::Host using clearwater::openstack::mInmantaAgent
+
+# Add external repo with monitoring packages
+implementation monApt for std::HostConfig:
+    apt::Repository(host=host, name="mon", release="/", repo="", base_url="http://stratus.cs.kuleuven.be/repo/")
+end
+
+implement std::HostConfig using monApt
+

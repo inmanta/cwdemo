@@ -1,0 +1,38 @@
+import param
+
+entity ClearwaterSize extends param::Form:
+    string _title = "VNF replication"
+    string _help = "Each VNF can be deployed with multiple replicated components. Use the slider to indicate on how many virtual machines the components need to be deployed."
+    string _record_count = 1
+
+    number sprout=1
+    number sprout__widget = "slider"
+    number sprout__min = 1
+    number sprout__max = 100
+    number sprout__help = "Number of sprout components to deploy"
+
+    number bono=1
+    number bono__widget = "slider"
+    number bono__min = 1
+    number bono__max = 100
+    number bono__help = "Number of bono components to deploy"
+
+    number homestead=1
+    number homestead__widget = "slider"
+    number homestead__min = 1
+    number homestead__max = 100
+    number homestead__help = "Number of homestead components to deploy"
+
+    number homer=1
+    number homer__widget = "slider"
+    number homer__min = 1
+    number homer__max = 100
+    number homer__help = "Number of homer components to deploy"
+
+    number ralf=1
+    number ralf__widget = "slider"
+    number ralf__min = 1
+    number ralf__max = 100
+    number ralf__help = "Number of homer components to deploy"
+
+end

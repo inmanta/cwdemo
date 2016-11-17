@@ -1,0 +1,3 @@
+import graph
+
+graph::Graph(name="components", config=std::source("cwdemo/components.dgr"))

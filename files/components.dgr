@@ -1,0 +1,5 @@
+clearwater::ClearwaterService[label=instance_name,shape=rect]
+clearwater::Host[label=name,rank=sink]
+clearwater::openstack::ClearwaterVNF[label=name,shape=diamond,rank=source]
+clearwater::ClearwaterService.host
+clearwater::ClearwaterService.vnf

@@ -1,0 +1,6 @@
+ubuntu1404_id="18315266-7077-424e-a1fd-341d4f5fbafd"
+centos7_id="8ceea0bd-7a5e-49d9-a586-e64cf0b823a1"
+cw_flavor="c2m2"
+mgmt_flavor="c1m1"
+mon_flavor="c4m8"
+dns_forwarders="8.8.8.8 8.8.4.4"
