@@ -1,0 +1,54 @@
+import lma
+import lma::storage::influxdb
+import lma::storage::elasticsearch
+import lma::metrics::collectd
+import lma::dashboards
+import openstack
+import param
+import ubuntu
+import cwdemo::params
+import clearwater::openstack
+
+implementation monitoringSetup for Infrastructure:
+    ## Setup a monitor server
+    sg_mon = openstack::SecurityGroup(provider=provider, project=project, name="cw_mon", description="Clearwater mon server")
+    openstack::IPrule(group=sg_mon, direction="egress", ip_protocol="all", remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="icmp", remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="tcp", port=22, remote_prefix="0.0.0.0/0")
+    openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="all", remote_prefix="0.0.0.0/0")
+
+    mon_server = openstack::Host(provider=provider, project=project, name="mon.{{private_domain}}", flavor=cwdemo::params::mon_flavor,
+                                  key_pair=key_pair, subnet=mgmt_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
+                                  security_groups=[sg_mon], infra=self)
+
+    fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mon_server.eth0_port)
+
+    monitor = lma::LMA(monitor_server=mon_server, tags=[lma::Tag(key="environment_id", value=std::environment()),
+                       lma::Tag(key="environment_name", value=std::environment_name())])
+    monitor.hosts = self.managed_clearwater.hosts
+    monitor.hosts = self.infra_hosts
+    monitor.hosts = mon_server
+
+    lma::storage::influxdb::Storage(monitor=monitor)
+    lma::storage::elasticsearch::Storage(monitor=monitor)
+    lma::metrics::collectd::Agent(monitor=monitor)
+    lma::dashboards::Grafana(monitor=monitor)
+
+    mon_ip = std::getfact(fip, "ip_address")
+    param::report("mon server public ip", mon_ip)
+    param::report("grafana", "http://{{ mon_ip }}:3000")
+end
+
+implement Infrastructure using monitoringSetup when monitoring
+
+implementation vnfTags for clearwater::openstack::Host:
+    self.tags = [lma::Tag(key="vnf", value=self.vnf.name)]
+end
+
+implementation infraTags for openstack::Host:
+    self.tags = [lma::Tag(key="infra", value="true")]
+end
+
+implement clearwater::openstack::Host using vnfTags when monitor is defined
+implement openstack::Host using infraTags when monitor is defined
+

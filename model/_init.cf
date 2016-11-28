@@ -120,48 +120,13 @@ implementation infra for Infrastructure:
     self.infra_hosts = [mgmt_server, ns1_server, ns2_server]
 end
 
-import lma
-import lma::storage::influxdb
-import lma::metrics::collectd
-import lma::dashboards
-
-implementation monitoringSetup for Infrastructure:
-    ## Setup a monitor server
-    sg_mon = openstack::SecurityGroup(provider=provider, project=project, name="cw_mon", description="Clearwater mon server")
-    openstack::IPrule(group=sg_mon, direction="egress", ip_protocol="all", remote_prefix="0.0.0.0/0")
-    openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="icmp", remote_prefix="0.0.0.0/0")
-    openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="tcp", port=22, remote_prefix="0.0.0.0/0")
-    openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="all", remote_prefix="0.0.0.0/0")
-
-    mon_server = openstack::Host(provider=provider, project=project, name="mon.{{private_domain}}", flavor=cwdemo::params::mon_flavor,
-                                  key_pair=key_pair, subnet=mgmt_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
-                                  security_groups=[sg_mon], infra=self)
-
-    fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mon_server.eth0_port)
-
-    monitor = lma::LMA(monitor_server=mon_server)
-    monitor.hosts = self.managed_clearwater.hosts
-    monitor.hosts = self.infra_hosts
-    monitor.hosts = mon_server
-
-    lma::storage::influxdb::Storage(monitor=monitor)
-    lma::metrics::collectd::Agent(monitor=monitor)
-    lma::dashboards::Grafana(monitor=monitor)
-
-    mon_ip = std::getfact(fip, "ip_address")
-    param::report("mon server public ip", mon_ip)
-    param::report("grafana", "http://{{ mon_ip }}:3000")
-end
-
-implement Infrastructure using monitoringSetup when monitoring
-
 ## Misc
 # Add this implementation to set user_data
 implement openstack::Host using clearwater::openstack::mInmantaAgent
 
 # Add external repo with monitoring packages
 implementation monApt for std::HostConfig:
-    apt::Repository(host=host, name="mon", release="/", repo="", base_url="http://stratus.cs.kuleuven.be/repo/")
+    apt::Repository(host=host, name="mon", release="/", repo="", trusted=true, base_url="http://stratus.cs.kuleuven.be/repo/")
 end
 
 implement std::HostConfig using monApt
