@@ -2,12 +2,17 @@ import lma
 import lma::storage::influxdb
 import lma::storage::elasticsearch
 import lma::metrics::collectd
-import lma::dashboards
+import lma::dashboards::kibana
+import lma::dashboards::grafana
+import lma::logs
 import openstack
 import param
 import ubuntu
 import cwdemo::params
 import clearwater::openstack
+import clearwater::lma
+import collectd::plugins
+import grafana
 
 implementation monitoringSetup for Infrastructure:
     ## Setup a monitor server
@@ -32,7 +37,12 @@ implementation monitoringSetup for Infrastructure:
     lma::storage::influxdb::Storage(monitor=monitor)
     lma::storage::elasticsearch::Storage(monitor=monitor)
     lma::metrics::collectd::Agent(monitor=monitor)
-    lma::dashboards::Grafana(monitor=monitor)
+    lma::logs::Collector(monitor=monitor)
+ 
+    lma::dashboards::kibana::Dashboard(monitor=monitor)
+    grafana = lma::dashboards::grafana::Dashboard(monitor=monitor)
+
+    grafana::Dashboard(server=grafana.grafana_server, name="System health", content=std::source("cwdemo/system.json"))
 
     mon_ip = std::getfact(fip, "ip_address")
     param::report("mon server public ip", mon_ip)
@@ -40,15 +50,4 @@ implementation monitoringSetup for Infrastructure:
 end
 
 implement Infrastructure using monitoringSetup when monitoring
-
-implementation vnfTags for clearwater::openstack::Host:
-    self.tags = [lma::Tag(key="vnf", value=self.vnf.name)]
-end
-
-implementation infraTags for openstack::Host:
-    self.tags = [lma::Tag(key="infra", value="true")]
-end
-
-implement clearwater::openstack::Host using vnfTags when monitor is defined
-implement openstack::Host using infraTags when monitor is defined
 
