@@ -54,6 +54,8 @@ implementation infra for Infrastructure:
     fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mgmt_server.eth0_port)
     dns::A(zone=private_zone, resource="{{mgmt_server.name}}.", ipaddress=mgmt_server.ip)
     std::ConfigFile(host=mgmt_server, path="/etc/resolv.conf", content=std::template("cwdemo/resolv.conf.tmpl"))
+    std::ConfigFile(host=mgmt_server, path="/usr/bin/setup_live_test.sh", content=std::file("clearwater/setup_live_test.sh"),
+                    mode=755)
 
     ## Setup DNS servers
     hostmaster="hostmaster@{{public_domain}}"
@@ -126,7 +128,7 @@ implement openstack::Host using clearwater::openstack::mInmantaAgent
 
 # Add external repo with monitoring packages
 implementation monApt for std::HostConfig:
-    apt::Repository(host=host, name="mon", release="/", repo="", trusted=true, base_url="http://stratus.cs.kuleuven.be/repo/")
+    apt::Repository(host=host, name="mon", release="/", repo="", trusted=true, base_url="https://packages.inmanta.com/repo/")
 end
 
 implement std::HostConfig using monApt

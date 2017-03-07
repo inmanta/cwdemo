@@ -39,14 +39,25 @@ implementation monitoringSetup for Infrastructure:
     lma::metrics::collectd::Agent(monitor=monitor)
     lma::logs::Collector(monitor=monitor)
  
-    lma::dashboards::kibana::Dashboard(monitor=monitor)
+    # Setup kibana
+    kibana = lma::dashboards::kibana::Dashboard(monitor=monitor)
+    # TODO: define kibana config from model
+
+    # Setup Grafana
     grafana = lma::dashboards::grafana::Dashboard(monitor=monitor)
 
-    grafana::Dashboard(server=grafana.grafana_server, name="System health", content=std::source("cwdemo/system.json"))
+    # Load predefined dashboards
+    grafana::Dashboard(server=grafana.grafana_server, name="System health", content=std::source("cwdemo/system.json"),
+                       requires=grafana.grafana_server)
+    grafana::Dashboard(server=grafana.grafana_server, name="VNF system health", content=std::source("cwdemo/vnf-system.json"),
+                       requires=grafana.grafana_server)
+    grafana::Dashboard(server=grafana.grafana_server, name="Clearwater latency", content=std::source("cwdemo/clearwater-latency.json"),
+                       requires=grafana.grafana_server)
 
     mon_ip = std::getfact(fip, "ip_address")
     param::report("mon server public ip", mon_ip)
     param::report("grafana", "http://{{ mon_ip }}:3000")
+    param::report("kibana", "http://{{ mon_ip }}:5601")
 end
 
 implement Infrastructure using monitoringSetup when monitoring
