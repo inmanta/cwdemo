@@ -23,10 +23,11 @@ implementation monitoringSetup for Infrastructure:
     openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="all", remote_prefix="0.0.0.0/0")
 
     mon_server = openstack::Host(provider=provider, project=project, name="mon.{{private_domain}}", flavor=cwdemo::params::mon_flavor,
-                                  key_pair=key_pair, subnet=mgmt_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
-                                  security_groups=[sg_mon], infra=self)
+                                 key_pair=key_pair, subnet=mgmt_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
+                                 infra=self)
+    mon_server.vm.security_groups=[sg_mon]
 
-    fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mon_server.eth0_port)
+    fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mon_server.vm.eth0_port)
 
     monitor = lma::LMA(monitor_server=mon_server, tags=[lma::Tag(key="environment_id", value=std::environment()),
                        lma::Tag(key="environment_name", value=std::environment_name())])

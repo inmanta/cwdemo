@@ -49,9 +49,9 @@ implementation infra for Infrastructure:
     openstack::IPrule(group=sg_mgmt, direction="ingress", ip_protocol="tcp", port=22, remote_prefix="0.0.0.0/0")
 
     mgmt_server = openstack::Host(provider=provider, project=project, name="mgmt.{{private_domain}}", flavor=cwdemo::params::mgmt_flavor,
-                                  key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
-                                  security_groups=[sg_mgmt])
-    fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mgmt_server.eth0_port)
+                                  key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404)
+    mgmt_server.vm.security_groups=[sg_mgmt]
+    fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mgmt_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{mgmt_server.name}}.", ipaddress=mgmt_server.ip)
     std::ConfigFile(host=mgmt_server, path="/etc/resolv.conf", content=std::template("cwdemo/resolv.conf.tmpl"))
     std::ConfigFile(host=mgmt_server, path="/usr/bin/setup_live_test.sh", content=std::file("clearwater/setup_live_test.sh"),
@@ -69,16 +69,16 @@ implementation infra for Infrastructure:
 
     # ns1
     ns1_server = openstack::Host(provider=provider, project=project, name="ns-1.{{private_domain}}", flavor=cwdemo::params::mgmt_flavor,
-                                 key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
-                                 security_groups=[sg_ns])
-    fip_ns1 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns1_server.eth0_port)
+                                 key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404)
+    ns1_server.vm.security_groups=[sg_ns]
+    fip_ns1 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns1_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{ns1_server.name}}.", ipaddress=ns1_server.ip)
 
     # ns2
     ns2_server = openstack::Host(provider=provider, project=project, name="ns-2.{{private_domain}}", flavor=cwdemo::params::mgmt_flavor,
-                                 key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404,
-                                 security_groups=[sg_ns])
-    fip_ns2 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns2_server.eth0_port)
+                                 key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404)
+    ns2_server.vm.security_groups=[sg_ns]
+    fip_ns2 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns2_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{ns2_server.name}}.", ipaddress=ns1_server.ip)
 
     # bind
