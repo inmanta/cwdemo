@@ -34,5 +34,13 @@ entity ClearwaterSize extends param::Form:
     number ralf__min = 1
     number ralf__max = 100
     number ralf__help = "Number of homer components to deploy"
+end
 
+entity DeployFeatures extends param::Form:
+    string _title="Deployment features"
+    string _hepl="This form controls various features of the deployment."
+    string _record_count=1
+
+    bool monitoring=false
+    bool monitoring__help="Enable monitoring for this deployment"
 end

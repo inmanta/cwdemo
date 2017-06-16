@@ -16,7 +16,7 @@ entity Infrastructure:
     ip::cidr network_address
     string private_domain
     string public_domain
-    bool monitoring=false
+    bool monitoring
 end
 
 openstack::Provider provider [1] -- [0:] Infrastructure infra
@@ -120,6 +120,9 @@ implementation infra for Infrastructure:
 
     # Create a list of all infrastructure hosts
     self.infra_hosts = [mgmt_server, ns1_server, ns2_server]
+
+    # Enable or disable monitoring
+    self.monitoring=param::one("monitoring", "cwdemo::forms::DeployFeatures")
 end
 
 ## Misc
