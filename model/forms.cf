@@ -44,3 +44,17 @@ entity DeployFeatures extends param::Form:
     bool monitoring=false
     bool monitoring__help="Enable monitoring for this deployment"
 end
+
+entity OpenStackForm extends param::Form:
+    string _title = "OpenStack credentials"
+    string _help = "Specify the credentials to login into your OpenStack provider."
+    string _record_count = 1
+   
+    string connection_url
+    string username
+    string password
+    string password__widget = "password"
+    string tenant
+    string uplink_network
+    string uplink_network__help = "The name of the external network that provides a gateway for the virtual router"
+end

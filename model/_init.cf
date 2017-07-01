@@ -31,6 +31,21 @@ ip::Host infra_hosts [0:] -- [0:1] Infrastructure infra
 implement Infrastructure using infra
 
 implementation infra for Infrastructure:
+    image_id = openstack::find_image(self.provider, ubuntu::ubuntu1404)
+    mgmt_flavor = openstack::find_flavor(self.provider, 1, 1)
+
+    # Credentials
+    tenant_name = param::one("tenant", "cwdemo::forms::OpenStackForm")
+    self.provider = openstack::Provider(name="openstack",  
+                                        connection_url=param::one("connection_url", "cwdemo::forms::OpenStackForm"),
+                                        username=param::one("username", "cwdemo::forms::OpenStackForm"),
+                                        password=param::one("password", "cwdemo::forms::OpenStackForm"),
+                                        tenant=tenant_name)
+    self.project = openstack::Project(provider=self.provider, name=tenant_name,
+                                      description="", enabled=true, managed=false)
+    self.external_network = openstack::Network(provider=self.provider, project=self.project, name=param::one("uplink_network", "cwdemo::forms::OpenStackForm"),
+                                               external=true, managed=false)
+
     ## OpenStack tenant network setup
     inmanta_net = openstack::Network(provider=provider, project=project, name=network_base_name)
     inmanta_subnet = openstack::Subnet(provider=provider, project=project, name=network_base_name, network=inmanta_net, 
@@ -48,8 +63,8 @@ implementation infra for Infrastructure:
     openstack::IPrule(group=sg_mgmt, direction="ingress", ip_protocol="icmp", remote_prefix="0.0.0.0/0")
     openstack::IPrule(group=sg_mgmt, direction="ingress", ip_protocol="tcp", port=22, remote_prefix="0.0.0.0/0")
 
-    mgmt_server = openstack::Host(provider=provider, project=project, name="mgmt.{{private_domain}}", flavor=cwdemo::params::mgmt_flavor,
-                                  key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404)
+    mgmt_server = openstack::Host(provider=provider, project=project, name="mgmt.{{private_domain}}", flavor=mgmt_flavor,
+                                  key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404)
     mgmt_server.vm.security_groups=[sg_mgmt]
     fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mgmt_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{mgmt_server.name}}.", ipaddress=mgmt_server.ip)
@@ -68,15 +83,15 @@ implementation infra for Infrastructure:
     openstack::IPrule(group=sg_ns, direction="ingress", ip_protocol="udp", port=53, remote_prefix="0.0.0.0/0")
 
     # ns1
-    ns1_server = openstack::Host(provider=provider, project=project, name="ns-1.{{private_domain}}", flavor=cwdemo::params::mgmt_flavor,
-                                 key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404)
+    ns1_server = openstack::Host(provider=provider, project=project, name="ns-1.{{private_domain}}", flavor=mgmt_flavor,
+                                 key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404)
     ns1_server.vm.security_groups=[sg_ns]
     fip_ns1 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns1_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{ns1_server.name}}.", ipaddress=ns1_server.ip)
 
     # ns2
-    ns2_server = openstack::Host(provider=provider, project=project, name="ns-2.{{private_domain}}", flavor=cwdemo::params::mgmt_flavor,
-                                 key_pair=key_pair, subnet=inmanta_subnet, image=cwdemo::params::ubuntu1404_id, os=ubuntu::ubuntu1404)
+    ns2_server = openstack::Host(provider=provider, project=project, name="ns-2.{{private_domain}}", flavor=mgmt_flavor,
+                                 key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404)
     ns2_server.vm.security_groups=[sg_ns]
     fip_ns2 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns2_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{ns2_server.name}}.", ipaddress=ns1_server.ip)
@@ -93,8 +108,8 @@ implementation infra for Infrastructure:
 
     # set managed clearwater relations
     self.managed_clearwater.mgmt_network = inmanta_subnet
-    self.managed_clearwater.image_id = cwdemo::params::ubuntu1404_id
-    self.managed_clearwater.flavor = cwdemo::params::cw_flavor
+    self.managed_clearwater.image_id = image_id
+    self.managed_clearwater.flavor = openstack::find_flavor(self.provider, 2, 4)
     self.managed_clearwater.key_pair = key_pair
     self.managed_clearwater.private_domain = private_domain
     self.managed_clearwater.public_domain = public_domain
