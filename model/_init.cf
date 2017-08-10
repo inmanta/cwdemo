@@ -123,9 +123,9 @@ implementation infra for Infrastructure:
     # get replication from server
     self.managed_clearwater.sprout_instances = param::one("sprout", "cwdemo::forms::ClearwaterSize")
     self.managed_clearwater.bono_instances = param::one("bono", "cwdemo::forms::ClearwaterSize")
-    self.managed_clearwater.homestead_instances = param::one("homestead", "cwdemo::forms::ClearwaterSize")
+    self.managed_clearwater.vellum_instances = param::one("vellum", "cwdemo::forms::ClearwaterSize")
     self.managed_clearwater.homer_instances = param::one("homer", "cwdemo::forms::ClearwaterSize")
-    self.managed_clearwater.ralf_instances = param::one("ralf", "cwdemo::forms::ClearwaterSize")
+    self.managed_clearwater.dime_instances = param::one("dime", "cwdemo::forms::ClearwaterSize")
     self.managed_clearwater.ellis_instances = 1
 
     ## Report DNS and MGMT ips

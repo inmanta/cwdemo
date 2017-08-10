@@ -17,11 +17,11 @@ entity ClearwaterSize extends param::Form:
     number bono__max = 100
     number bono__help = "Number of bono components to deploy"
 
-    number homestead=1
-    number homestead__widget = "slider"
-    number homestead__min = 1
-    number homestead__max = 100
-    number homestead__help = "Number of homestead components to deploy"
+    number dime=1
+    number dime__widget = "slider"
+    number dime__min = 1
+    number dime__max = 100
+    number dime__help = "Number of dime components to deploy"
 
     number homer=1
     number homer__widget = "slider"
@@ -29,11 +29,11 @@ entity ClearwaterSize extends param::Form:
     number homer__max = 100
     number homer__help = "Number of homer components to deploy"
 
-    number ralf=1
-    number ralf__widget = "slider"
-    number ralf__min = 1
-    number ralf__max = 100
-    number ralf__help = "Number of homer components to deploy"
+    number vellum=3
+    number vellum__widget = "slider"
+    number vellum__min = 3
+    number vellum__max = 100
+    number vellum__help = "Number of vellum components to deploy"
 end
 
 entity DeployFeatures extends param::Form:
