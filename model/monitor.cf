@@ -22,7 +22,7 @@ implementation monitoringSetup for Infrastructure:
     openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="tcp", port=22, remote_prefix="0.0.0.0/0")
     openstack::IPrule(group=sg_mon, direction="ingress", ip_protocol="all", remote_prefix="0.0.0.0/0")
 
-    mon_server = openstack::Host(provider=provider, project=project, name="mon.{{private_domain}}", flavor=openstack::find_flavor(self.provider, 4, 8),
+    mon_server = openstack::Host(provider=provider, project=project, name="mon.{{private_domain}}", flavor=openstack::find_flavor(self.provider, 2, 8),
                                  key_pair=key_pair, subnet=mgmt_subnet, image=self.managed_clearwater.image_id, os=ubuntu::ubuntu1404,
                                  infra=self)
     mon_server.vm.security_groups=[sg_mon]
