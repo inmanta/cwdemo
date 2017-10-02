@@ -43,6 +43,9 @@ entity DeployFeatures extends param::Form:
 
     bool monitoring=false
     bool monitoring__help="Enable monitoring for this deployment"
+
+    string dns_server="192.168.1.1"
+    string dns_server__help="Use a custom dns server"
 end
 
 entity OpenStackForm extends param::Form:

@@ -47,10 +47,11 @@ implementation infra for Infrastructure:
                                                external=true, managed=false)
 
     ## OpenStack tenant network setup
+    dns_server = param::one("dns_server", "cwdemo::forms::DeployFeatures")
     inmanta_net = openstack::Network(provider=provider, project=project, name=network_base_name)
     inmanta_subnet = openstack::Subnet(provider=provider, project=project, name=network_base_name, network=inmanta_net, 
                                        router=router, dhcp=true, network_address=network_address,
-                                       dns_servers=["8.8.8.8", "8.8.4.4"])
+                                       dns_servers=[dns_server])
     self.mgmt_subnet = inmanta_subnet
 
     router = openstack::Router(provider=provider, project=project, name=network_base_name, admin_state="up",
@@ -98,9 +99,9 @@ implementation infra for Infrastructure:
 
     # bind
     master_ns = bind::Server(host=ns1_server, axfr_allowed=ns2_server.ip, allow_recursion=inmanta_subnet.network_address,
-                             forwarders=cwdemo::params::dns_forwarders)
+                             forwarders=dns_server)
     slave_ns = bind::Server(host=ns2_server, axfr_allowed=ns1_server.ip, allow_recursion=inmanta_subnet.network_address,
-                             forwarders=cwdemo::params::dns_forwarders)
+                             forwarders=dns_server)
 
     # create public and private zone
     private_zone = dns::Zone(domain=private_domain, hostmaster=hostmaster, master=master_ns, slaves=slave_ns, add_ns=true)
