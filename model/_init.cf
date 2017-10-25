@@ -36,7 +36,7 @@ implementation infra for Infrastructure:
 
     # Credentials
     tenant_name = param::one("tenant", "cwdemo::forms::OpenStackForm")
-    self.provider = openstack::Provider(name="openstack",  
+    self.provider = openstack::Provider(name="openstack",
                                         connection_url=param::one("connection_url", "cwdemo::forms::OpenStackForm"),
                                         username=param::one("username", "cwdemo::forms::OpenStackForm"),
                                         password=param::one("password", "cwdemo::forms::OpenStackForm"),
@@ -49,7 +49,7 @@ implementation infra for Infrastructure:
     ## OpenStack tenant network setup
     dns_server = param::one("dns_server", "cwdemo::forms::DeployFeatures")
     inmanta_net = openstack::Network(provider=provider, project=project, name=network_base_name)
-    inmanta_subnet = openstack::Subnet(provider=provider, project=project, name=network_base_name, network=inmanta_net, 
+    inmanta_subnet = openstack::Subnet(provider=provider, project=project, name=network_base_name, network=inmanta_net,
                                        router=router, dhcp=true, network_address=network_address,
                                        dns_servers=[dns_server])
     self.mgmt_subnet = inmanta_subnet
@@ -127,7 +127,6 @@ implementation infra for Infrastructure:
     self.managed_clearwater.vellum_instances = param::one("vellum", "cwdemo::forms::ClearwaterSize")
     self.managed_clearwater.homer_instances = param::one("homer", "cwdemo::forms::ClearwaterSize")
     self.managed_clearwater.dime_instances = param::one("dime", "cwdemo::forms::ClearwaterSize")
-    self.managed_clearwater.ellis_instances = 1
 
     ## Report DNS and MGMT ips
     param::report("ns-1 public ip", std::getfact(fip_ns1, "ip_address"))

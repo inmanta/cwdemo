@@ -1,9 +1,10 @@
 import lma
 import lma::storage::influxdb
 import lma::storage::elasticsearch
-import lma::metrics::collectd
+import lma::metrics::telegraf
 import lma::dashboards::kibana
 import lma::dashboards::grafana
+import lma::analytics::kapacitor
 import lma::logs
 import openstack
 import param
@@ -11,7 +12,6 @@ import ubuntu
 import cwdemo::params
 import clearwater::openstack
 import clearwater::lma
-import collectd::plugins
 import grafana
 
 implementation monitoringSetup for Infrastructure:
@@ -30,18 +30,20 @@ implementation monitoringSetup for Infrastructure:
     fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mon_server.vm.eth0_port)
 
     monitor = lma::LMA(monitor_server=mon_server, tags=[lma::Tag(key="environment_id", value=std::environment()),
-                       lma::Tag(key="environment_name", value=std::environment_name())])
+                       lma::Tag(key="environment_name", value=std::environment_name())], heka=false)
     monitor.hosts = self.managed_clearwater.hosts
     monitor.hosts = self.infra_hosts
     monitor.hosts = mon_server
 
     lma::storage::influxdb::Storage(monitor=monitor)
-    lma::storage::elasticsearch::Storage(monitor=monitor)
-    lma::metrics::collectd::Agent(monitor=monitor)
-    lma::logs::Collector(monitor=monitor)
- 
+    lma::metrics::telegraf::Agent(monitor=monitor)
+    lma::analytics::kapacitor::Kapacitor(monitor=monitor)
+
+    #lma::storage::elasticsearch::Storage(monitor=monitor)
+    #lma::logs::Collector(monitor=monitor)
+
     # Setup kibana
-    kibana = lma::dashboards::kibana::Dashboard(monitor=monitor)
+    #kibana = lma::dashboards::kibana::Dashboard(monitor=monitor)
     # TODO: define kibana config from model
 
     # Setup Grafana
@@ -49,6 +51,8 @@ implementation monitoringSetup for Infrastructure:
 
     # Load predefined dashboards
     grafana::Dashboard(server=grafana.grafana_server, name="System health", content=std::source("cwdemo/system.json"),
+                       requires=grafana.grafana_server)
+    grafana::Dashboard(server=grafana.grafana_server, name="Systems", content=std::source("cwdemo/sys.json"),
                        requires=grafana.grafana_server)
     grafana::Dashboard(server=grafana.grafana_server, name="VNF system health", content=std::source("cwdemo/vnf-system.json"),
                        requires=grafana.grafana_server)
