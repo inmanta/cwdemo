@@ -24,7 +24,7 @@ implementation monitoringSetup for Infrastructure:
 
     mon_server = openstack::Host(provider=provider, project=project, name="mon.{{private_domain}}", flavor=openstack::find_flavor(self.provider, 2, 8),
                                  key_pair=key_pair, subnet=mgmt_subnet, image=self.managed_clearwater.image_id, os=ubuntu::ubuntu1404,
-                                 infra=self)
+                                 infra=self, install_agent=true)
     mon_server.vm.security_groups=[sg_mon]
 
     fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mon_server.vm.eth0_port)

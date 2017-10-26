@@ -65,7 +65,8 @@ implementation infra for Infrastructure:
     openstack::IPrule(group=sg_mgmt, direction="ingress", ip_protocol="tcp", port=22, remote_prefix="0.0.0.0/0")
 
     mgmt_server = openstack::Host(provider=provider, project=project, name="mgmt.{{private_domain}}", flavor=mgmt_flavor,
-                                  key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404)
+                                  key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404,
+                                  install_agent=true)
     mgmt_server.vm.security_groups=[sg_mgmt]
     fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mgmt_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{mgmt_server.name}}.", ipaddress=mgmt_server.ip)
@@ -85,14 +86,16 @@ implementation infra for Infrastructure:
 
     # ns1
     ns1_server = openstack::Host(provider=provider, project=project, name="ns-1.{{private_domain}}", flavor=mgmt_flavor,
-                                 key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404)
+                                 key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404,
+                                 install_agent=true)
     ns1_server.vm.security_groups=[sg_ns]
     fip_ns1 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns1_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{ns1_server.name}}.", ipaddress=ns1_server.ip)
 
     # ns2
     ns2_server = openstack::Host(provider=provider, project=project, name="ns-2.{{private_domain}}", flavor=mgmt_flavor,
-                                 key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404)
+                                 key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404,
+                                 install_agent=true)
     ns2_server.vm.security_groups=[sg_ns]
     fip_ns2 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns2_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{ns2_server.name}}.", ipaddress=ns1_server.ip)
@@ -141,9 +144,6 @@ implementation infra for Infrastructure:
 end
 
 ## Misc
-# Add this implementation to set user_data
-implement openstack::Host using clearwater::openstack::mInmantaAgent
-
 # Add external repo with monitoring packages
 implementation monApt for std::HostConfig:
     apt::Repository(host=host, name="mon", release="/", repo="", trusted=true, base_url="https://packages.inmanta.com/repo/")
