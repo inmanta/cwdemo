@@ -8,7 +8,6 @@ import bind
 import param
 import apt
 import ip
-import cwdemo::params
 import cwdemo::forms
 
 entity Infrastructure:
@@ -43,8 +42,8 @@ implementation infra for Infrastructure:
                                         tenant=tenant_name)
     self.project = openstack::Project(provider=self.provider, name=tenant_name,
                                       description="", enabled=true, managed=false)
-    self.external_network = openstack::Network(provider=self.provider, project=self.project, name=param::one("uplink_network", "cwdemo::forms::OpenStackForm"),
-                                               external=true, managed=false)
+    self.external_network = openstack::Network(provider=self.provider, project=self.project, external=true, managed=false,
+                                               name=param::one("uplink_network", "cwdemo::forms::OpenStackForm"))
 
     ## OpenStack tenant network setup
     dns_server = param::one("dns_server", "cwdemo::forms::DeployFeatures")
@@ -68,7 +67,8 @@ implementation infra for Infrastructure:
                                   key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404,
                                   install_agent=true)
     mgmt_server.vm.security_groups=[sg_mgmt]
-    fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mgmt_server.vm.eth0_port)
+    fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network,
+                                port=mgmt_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{mgmt_server.name}}.", ipaddress=mgmt_server.ip)
     std::ConfigFile(host=mgmt_server, path="/etc/resolv.conf", content=std::template("cwdemo/resolv.conf.tmpl"))
     std::ConfigFile(host=mgmt_server, path="/usr/bin/setup_live_test.sh", content=std::file("clearwater/setup_live_test.sh"),
@@ -89,16 +89,22 @@ implementation infra for Infrastructure:
                                  key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404,
                                  install_agent=true)
     ns1_server.vm.security_groups=[sg_ns]
-    fip_ns1 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns1_server.vm.eth0_port)
+    fip_ns1 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network,
+                                    port=ns1_server.vm.eth0_port)
     dns::A(zone=private_zone, resource="{{ns1_server.name}}.", ipaddress=ns1_server.ip)
+    dns::NS(zone=private_zone, server="{{ns1_server.name}}.")
+    dns::NS(zone=public_zone, server="{{ns1_server.name}}.")
 
     # ns2
     ns2_server = openstack::Host(provider=provider, project=project, name="ns-2.{{private_domain}}", flavor=mgmt_flavor,
                                  key_pair=key_pair, subnet=inmanta_subnet, image=image_id, os=ubuntu::ubuntu1404,
                                  install_agent=true)
     ns2_server.vm.security_groups=[sg_ns]
-    fip_ns2 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=ns2_server.vm.eth0_port)
-    dns::A(zone=private_zone, resource="{{ns2_server.name}}.", ipaddress=ns1_server.ip)
+    fip_ns2 = openstack::FloatingIP(provider=provider, project=project, external_network=external_network,
+                                    port=ns2_server.vm.eth0_port)
+    dns::A(zone=private_zone, resource="{{ns2_server.name}}.", ipaddress=ns2_server.ip)
+    dns::NS(zone=private_zone, server="{{ns2_server.name}}.")
+    dns::NS(zone=public_zone, server="{{ns2_server.name}}.")
 
     # bind
     master_ns = bind::Server(host=ns1_server, axfr_allowed=ns2_server.ip, allow_recursion=inmanta_subnet.network_address,
@@ -107,8 +113,9 @@ implementation infra for Infrastructure:
                              forwarders=dns_server)
 
     # create public and private zone
-    private_zone = dns::Zone(domain=private_domain, hostmaster=hostmaster, master=master_ns, slaves=slave_ns, add_ns=true)
-    public_zone = dns::Zone(domain=public_domain, hostmaster=hostmaster, master=master_ns, slaves=slave_ns, add_ns=true)
+    private_zone = dns::Zone(domain=private_domain, hostmaster=hostmaster, master=master_ns, slaves=slave_ns)
+    public_zone = dns::Zone(domain=public_domain, hostmaster=hostmaster, master=master_ns, slaves=slave_ns)
+    
 
     # set managed clearwater relations
     self.managed_clearwater.mgmt_network = inmanta_subnet
@@ -124,13 +131,6 @@ implementation infra for Infrastructure:
     self.managed_clearwater.provider = provider
     self.managed_clearwater.project = project
 
-    # get replication from server
-    self.managed_clearwater.sprout_instances = param::one("sprout", "cwdemo::forms::ClearwaterSize")
-    self.managed_clearwater.bono_instances = param::one("bono", "cwdemo::forms::ClearwaterSize")
-    self.managed_clearwater.vellum_instances = param::one("vellum", "cwdemo::forms::ClearwaterSize")
-    self.managed_clearwater.homer_instances = param::one("homer", "cwdemo::forms::ClearwaterSize")
-    self.managed_clearwater.dime_instances = param::one("dime", "cwdemo::forms::ClearwaterSize")
-
     ## Report DNS and MGMT ips
     param::report("ns-1 public ip", std::getfact(fip_ns1, "ip_address"))
     param::report("ns-2 public ip", std::getfact(fip_ns2, "ip_address"))
@@ -140,7 +140,7 @@ implementation infra for Infrastructure:
     self.infra_hosts = [mgmt_server, ns1_server, ns2_server]
 
     # Enable or disable monitoring
-    self.monitoring=param::one("monitoring", "cwdemo::forms::DeployFeatures")
+    self.monitoring = param::one("monitoring", "cwdemo::forms::DeployFeatures")
 end
 
 ## Misc

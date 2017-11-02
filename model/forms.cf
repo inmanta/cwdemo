@@ -1,41 +1,5 @@
 import param
 
-entity ClearwaterSize extends param::Form:
-    string _title = "VNF replication"
-    string _help = "Each VNF can be deployed with multiple replicated components. Use the slider to indicate on how many virtual machines the components need to be deployed."
-    string _record_count = 1
-
-    number sprout=1
-    number sprout__widget = "slider"
-    number sprout__min = 1
-    number sprout__max = 100
-    number sprout__help = "Number of sprout components to deploy"
-
-    number bono=1
-    number bono__widget = "slider"
-    number bono__min = 1
-    number bono__max = 100
-    number bono__help = "Number of bono components to deploy"
-
-    number dime=1
-    number dime__widget = "slider"
-    number dime__min = 1
-    number dime__max = 100
-    number dime__help = "Number of dime components to deploy"
-
-    number homer=1
-    number homer__widget = "slider"
-    number homer__min = 1
-    number homer__max = 100
-    number homer__help = "Number of homer components to deploy"
-
-    number vellum=3
-    number vellum__widget = "slider"
-    number vellum__min = 3
-    number vellum__max = 100
-    number vellum__help = "Number of vellum components to deploy"
-end
-
 entity DeployFeatures extends param::Form:
     string _title="Deployment features"
     string _hepl="This form controls various features of the deployment."

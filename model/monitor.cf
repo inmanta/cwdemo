@@ -5,14 +5,15 @@ import lma::metrics::telegraf
 import lma::dashboards::kibana
 import lma::dashboards::grafana
 import lma::analytics::kapacitor
+import lma::dashboards::chronograf
 import lma::logs
 import openstack
 import param
 import ubuntu
-import cwdemo::params
 import clearwater::openstack
 import clearwater::lma
 import grafana
+import cwdemo
 
 implementation monitoringSetup for Infrastructure:
     ## Setup a monitor server
@@ -38,6 +39,8 @@ implementation monitoringSetup for Infrastructure:
     lma::storage::influxdb::Storage(monitor=monitor)
     lma::metrics::telegraf::Agent(monitor=monitor)
     lma::analytics::kapacitor::Kapacitor(monitor=monitor)
+    lma::dashboards::chronograf::Dashboard(monitor=monitor)
+
 
     #lma::storage::elasticsearch::Storage(monitor=monitor)
     #lma::logs::Collector(monitor=monitor)
@@ -63,7 +66,21 @@ implementation monitoringSetup for Infrastructure:
     param::report("mon server public ip", mon_ip)
     param::report("grafana", "http://{{ mon_ip }}:3000")
     param::report("kibana", "http://{{ mon_ip }}:5601")
+
+    self.managed_clearwater.sprout_instances = cwdemo::instances("http://{{ mon_ip }}:9092/kapacitor/v1/tasks/vnf_cpu_alert/scale", "sprout")
+    self.managed_clearwater.bono_instances = cwdemo::instances("http://{{ mon_ip }}:9092/kapacitor/v1/tasks/vnf_cpu_alert/scale", "bono")
+    self.managed_clearwater.vellum_instances = cwdemo::instances("http://{{ mon_ip }}:9092/kapacitor/v1/tasks/vnf_cpu_alert/scale", "vellum")
+    self.managed_clearwater.homer_instances = cwdemo::instances("http://{{ mon_ip }}:9092/kapacitor/v1/tasks/vnf_cpu_alert/scale", "homer")
+    self.managed_clearwater.dime_instances = cwdemo::instances("http://{{ mon_ip }}:9092/kapacitor/v1/tasks/vnf_cpu_alert/scale", "dime")
+end
+
+implementation defaultInstances for Infrastructure:
+    self.managed_clearwater.sprout_instances = 0
+    self.managed_clearwater.bono_instances = 0
+    self.managed_clearwater.vellum_instances = 0
+    self.managed_clearwater.homer_instances = 0
+    self.managed_clearwater.dime_instances = 0
 end
 
 implement Infrastructure using monitoringSetup when monitoring
-
+implement Infrastructure using defaultInstances when not monitoring
