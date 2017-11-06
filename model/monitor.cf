@@ -53,14 +53,14 @@ implementation monitoringSetup for Infrastructure:
     grafana = lma::dashboards::grafana::Dashboard(monitor=monitor)
 
     # Load predefined dashboards
-    grafana::Dashboard(server=grafana.grafana_server, name="System health", content=std::source("cwdemo/system.json"),
-                       requires=grafana.grafana_server)
-    grafana::Dashboard(server=grafana.grafana_server, name="Systems", content=std::source("cwdemo/sys.json"),
-                       requires=grafana.grafana_server)
-    grafana::Dashboard(server=grafana.grafana_server, name="VNF system health", content=std::source("cwdemo/vnf-system.json"),
-                       requires=grafana.grafana_server)
-    grafana::Dashboard(server=grafana.grafana_server, name="Clearwater latency", content=std::source("cwdemo/clearwater-latency.json"),
-                       requires=grafana.grafana_server)
+    # grafana::Dashboard(server=grafana.grafana_server, name="System health", content=std::source("cwdemo/system.json"),
+    #                    requires=grafana.grafana_server)
+    # grafana::Dashboard(server=grafana.grafana_server, name="Systems", content=std::source("cwdemo/sys.json"),
+    #                    requires=grafana.grafana_server)
+    # grafana::Dashboard(server=grafana.grafana_server, name="VNF system health", content=std::source("cwdemo/vnf-system.json"),
+    #                    requires=grafana.grafana_server)
+    # grafana::Dashboard(server=grafana.grafana_server, name="Clearwater latency", content=std::source("cwdemo/clearwater-latency.json"),
+    #                    requires=grafana.grafana_server)
 
     mon_ip = std::getfact(fip, "ip_address")
     param::report("mon server public ip", mon_ip)
