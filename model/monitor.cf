@@ -31,7 +31,7 @@ implementation monitoringSetup for Infrastructure:
     fip = openstack::FloatingIP(provider=provider, project=project, external_network=external_network, port=mon_server.vm.eth0_port)
 
     monitor = lma::LMA(monitor_server=mon_server, tags=[lma::Tag(key="environment_id", value=std::environment()),
-                       lma::Tag(key="environment_name", value=std::environment_name())], heka=false)
+                       lma::Tag(key="environment_name", value=std::environment_name())])
     monitor.hosts = self.managed_clearwater.hosts
     monitor.hosts = self.infra_hosts
     monitor.hosts = mon_server
@@ -41,12 +41,11 @@ implementation monitoringSetup for Infrastructure:
     lma::analytics::kapacitor::Kapacitor(monitor=monitor)
     lma::dashboards::chronograf::Dashboard(monitor=monitor)
 
-
-    #lma::storage::elasticsearch::Storage(monitor=monitor)
-    #lma::logs::Collector(monitor=monitor)
+    lma::storage::elasticsearch::Storage(monitor=monitor)
+    lma::logs::Collector(monitor=monitor)
 
     # Setup kibana
-    #kibana = lma::dashboards::kibana::Dashboard(monitor=monitor)
+    kibana = lma::dashboards::kibana::Dashboard(monitor=monitor)
     # TODO: define kibana config from model
 
     # Setup Grafana

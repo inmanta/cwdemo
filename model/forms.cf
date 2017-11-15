@@ -6,6 +6,7 @@ entity DeployFeatures extends param::Form:
     string _record_count=1
 
     bool monitoring=false
+    bool monitoring__widget="checkbox"
     bool monitoring__help="Enable monitoring for this deployment"
 
     string dns_server="192.168.1.1"
@@ -13,15 +14,19 @@ entity DeployFeatures extends param::Form:
 end
 
 entity OpenStackForm extends param::Form:
-    string _title = "OpenStack credentials"
-    string _help = "Specify the credentials to login into your OpenStack provider."
-    string _record_count = 1
-   
+    string _title="OpenStack credentials"
+    string _help="Specify the credentials to login into your OpenStack provider."
+    string _record_count=1
+
     string connection_url
     string username
     string password
-    string password__widget = "password"
+    string password__widget="password"
     string tenant
     string uplink_network
-    string uplink_network__help = "The name of the external network that provides a gateway for the virtual router"
+    string uplink_network__help="The name of the external network that provides a gateway for the virtual router"
+
+    string public_ssh_key
+    string public_ssh_key__widget="textarea"
+    string public_ssh_key__help="The public ssh key to use to deploy new virtual machines"
 end

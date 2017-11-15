@@ -45,6 +45,9 @@ implementation infra for Infrastructure:
     self.external_network = openstack::Network(provider=self.provider, project=self.project, external=true, managed=false,
                                                name=param::one("uplink_network", "cwdemo::forms::OpenStackForm"))
 
+    # Set the ssh key
+    self.key_pair = ssh::Key(name="clearwater", public_key=param::one("public_ssh_key", "cwdemo::forms::OpenStackForm"))
+
     ## OpenStack tenant network setup
     dns_server = param::one("dns_server", "cwdemo::forms::DeployFeatures")
     inmanta_net = openstack::Network(provider=provider, project=project, name=network_base_name)
@@ -115,10 +118,10 @@ implementation infra for Infrastructure:
     dns::NS(zone=public_zone, server="ns-2.{{public_domain}}.")
 
     # bind
-    master_ns = bind::Server(host=ns1_server, axfr_allowed=ns2_server.ip, allow_recursion=inmanta_subnet.network_address,
-                             forwarders=dns_server)
-    slave_ns = bind::Server(host=ns2_server, axfr_allowed=ns1_server.ip, allow_recursion=inmanta_subnet.network_address,
-                             forwarders=dns_server)
+    master_ns = bind::Server(host=ns1_server, axfr_allowed=[ns2_server.ip, ns2_public_ip],
+                             allow_recursion=inmanta_subnet.network_address, forwarders=dns_server)
+    slave_ns = bind::Server(host=ns2_server, axfr_allowed=[ns1_server.ip, ns1_public_ip],
+                            allow_recursion=inmanta_subnet.network_address, forwarders=dns_server)
 
     # create public and private zone
     private_zone = dns::Zone(domain=private_domain, hostmaster=hostmaster, master=master_ns, slaves=slave_ns)
