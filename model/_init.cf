@@ -127,11 +127,9 @@ implementation infra for Infrastructure:
     private_zone = dns::Zone(domain=private_domain, hostmaster=hostmaster, master=master_ns, slaves=slave_ns)
     public_zone = dns::Zone(domain=public_domain, hostmaster=hostmaster, master=master_ns, slaves=slave_ns)
 
-
     # set managed clearwater relations
     self.managed_clearwater.mgmt_network = inmanta_subnet
     self.managed_clearwater.image_id = image_id
-    self.managed_clearwater.flavor = openstack::find_flavor(self.provider, 2, 4)
     self.managed_clearwater.key_pair = key_pair
     self.managed_clearwater.private_domain = private_domain
     self.managed_clearwater.public_domain = public_domain
@@ -141,6 +139,7 @@ implementation infra for Infrastructure:
     self.managed_clearwater.private_zone = private_zone
     self.managed_clearwater.provider = provider
     self.managed_clearwater.project = project
+    self.managed_clearwater.upgrade_version = param::one("version", "cwdemo::forms::DeployFeatures")
 
     ## Report DNS and MGMT ips
     param::report("ns-1 public ip", ns1_public_ip)

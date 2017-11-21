@@ -11,6 +11,10 @@ entity DeployFeatures extends param::Form:
 
     string dns_server="192.168.1.1"
     string dns_server__help="Use a custom dns server"
+
+    string version="127"
+    string version__widget="options"
+    string version__options="127,128"
 end
 
 entity OpenStackForm extends param::Form:
