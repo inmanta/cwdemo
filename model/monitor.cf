@@ -64,7 +64,7 @@ implementation monitoringSetup for Infrastructure:
     mon_ip = std::getfact(fip, "ip_address")
     param::report("mon server public ip", mon_ip)
     param::report("grafana", "http://{{ mon_ip }}:3000")
-    param::report("kibana", "http://{{ mon_ip }}:5601")
+    #param::report("kibana", "http://{{ mon_ip }}:5601")
 
     self.managed_clearwater.sprout_instances = cwdemo::instances("http://{{ mon_ip }}:9092/kapacitor/v1/tasks/vnf_cpu_alert/scale", "sprout")
     self.managed_clearwater.bono_instances = cwdemo::instances("http://{{ mon_ip }}:9092/kapacitor/v1/tasks/vnf_cpu_alert/scale", "bono")
